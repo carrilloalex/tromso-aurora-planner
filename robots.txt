@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://carrilloalex.github.io/tromso-aurora-planner/sitemap.xml
