@@ -51,6 +51,53 @@
 @media(max-width:600px){.explore-modes{align-items:stretch;flex-direction:column;gap:5px}.explore-modes select{max-width:none;width:100%}.selected-booking{align-items:stretch;flex-direction:column}.selected-booking button{align-self:flex-start}.forecast-state,.forecast-context{padding:13px}}
 
 .header-actions{display:flex;align-items:center;gap:8px}.header-actions select{background:#142c3b;color:#eff7fa;border:1px solid #476071;border-radius:10px;padding:9px;max-width:125px}.seo-intro{font-size:13px;color:var(--muted);max-width:850px;margin:0 0 14px}.faq-panel{margin-top:16px}.faq-panel h3{font-size:15px;margin:20px 0 5px}.faq-panel p{color:var(--muted);margin:0 0 10px}@media(max-width:380px){.header-actions{gap:4px}.header-actions select{max-width:100px;padding:8px 3px}.logo{font-size:19px}}
+
+/* v12 responsive hardening: prevent intrinsic form widths from overflowing cards */
+html{min-width:0}body{min-width:0;overflow-x:clip}
+.wrap,.panel,.triphero,.tripsettings,.week-panel,.routes-panel,.night-focus,.detail-panel,.cols,.grid,.row,.flex,.field,.top,.header-actions,dialog,dialog form{min-width:0;max-width:100%}
+.field{min-width:0;flex:1 1 190px}
+.field input,.field select,dialog input,dialog select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0}
+input[type=date],input[type=time]{min-inline-size:0;max-inline-size:100%;-webkit-appearance:none;appearance:none}
+input[type=date]::-webkit-date-and-time-value,input[type=time]::-webkit-date-and-time-value{text-align:left;min-width:0}
+.row>*{min-width:0}.row p,.row b,.row span,.nightbtn,.pill,.hint,.forecast-context,.forecast-state{overflow-wrap:anywhere}
+.header-actions{flex-shrink:0}.header-actions select{min-width:0}
+#editDialog{box-sizing:border-box;width:min(490px,calc(100% - 24px))!important;max-width:calc(100% - 24px);max-height:calc(100% - 32px);overflow-y:auto;margin:auto;padding:18px}
+#editDialog form{width:100%}
+#editDialog .flex{width:100%}
+@media(max-width:700px){
+ .wrap{width:100%;max-width:100%;overflow-x:clip}
+ .top{flex-wrap:wrap;align-items:flex-start;gap:8px}
+ .top>div:first-child{min-width:0;flex:1 1 150px}
+ .header-actions{flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end}
+ .header-actions select{max-width:110px}
+ .panel{max-width:100%}
+ .triphero .flex,.tripsettings .flex,#editDialog .flex{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+ .triphero .field,.tripsettings .field,#editDialog .field{width:100%;min-width:0}
+ .triphero input,.tripsettings input,#editDialog input{font-size:16px;min-height:46px}
+ .triphero select,.tripsettings select,#editDialog select{font-size:16px;min-height:46px}
+ #editDialog{padding:16px}
+ #editDialog .flex:last-child{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+ .trip-nights .nightbtn .row{align-items:flex-start;gap:8px}
+ .trip-nights .nightbtn .row>div:first-child{flex:1 1 0}
+ .trip-nights .nightbtn .row>div:last-child{flex:0 1 100px}
+ .focus-head{flex-wrap:wrap;gap:8px}
+ .focus-badge{white-space:normal}
+ .explore-modes{min-width:0}
+ .seg{flex-wrap:wrap}
+ .seg button{min-width:0}
+ .zone{grid-template-columns:minmax(0,1fr) auto}
+ .grid,.tripstats{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .stat{min-width:0;overflow-wrap:anywhere}
+}
+@media(max-width:360px){
+ .header-actions{width:100%;justify-content:space-between}
+ .header-actions select{max-width:none;flex:1}
+ .header-actions button{flex:0 0 auto}
+ .grid,.tripstats{gap:5px}
+ .stat{padding:7px}
+ .num{font-size:17px}
+}
+
 </style><meta content="https://carrilloalex.github.io/tromso-aurora-planner/en/" property="og:url"/><link href="https://carrilloalex.github.io/tromso-aurora-planner/en/" rel="canonical"/><link href="https://carrilloalex.github.io/tromso-aurora-planner/en/" hreflang="en" rel="alternate"/><link href="https://carrilloalex.github.io/tromso-aurora-planner/es/" hreflang="es" rel="alternate"/><link href="https://carrilloalex.github.io/tromso-aurora-planner/" hreflang="x-default" rel="alternate"/><script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebApplication", "name": "Aurora Planner", "url": "https://carrilloalex.github.io/tromso-aurora-planner/en/", "applicationCategory": "TravelApplication", "operatingSystem": "Web", "inLanguage": "en", "isAccessibleForFree": true, "description": "Plan your northern lights trip to Tromsø, Norway. Compare upcoming nights, cloud cover and possible aurora-chasing areas; organize tours and cancellation deadlines."}, {"@type": "FAQPage", "inLanguage": "en", "mainEntity": [{"@type": "Question", "name": "Can you predict the northern lights three months ahead?", "acceptedAnswer": {"@type": "Answer", "text": "No. Aurora Planner uses weather forecasts for approximately the next 16 days. You can organize tours months before your trip, but cannot get reliable daily weather predictions that far ahead."}}, {"@type": "Question", "name": "Does clear sky guarantee northern lights?", "acceptedAnswer": {"@type": "Answer", "text": "No. Cloud cover is only one factor. Aurora visibility also depends on geomagnetic activity, darkness and local conditions."}}, {"@type": "Question", "name": "Do I need travel dates?", "acceptedAnswer": {"@type": "Answer", "text": "No. Explore upcoming nights without entering dates. Trip planning and booking tracking are optional."}}]}]}</script><style id="continuous-timeline-styles">
 .week-controls{justify-content:space-between;gap:12px;margin:12px 0}.week-controls b{min-width:0;flex:1;text-align:left;font-size:13px}.week-controls .ghost{font-size:18px;min-height:42px;min-width:42px;padding:6px 10px}.weekgrid{display:flex;gap:9px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:#456575 transparent;padding:5px 3px 12px;scroll-padding-inline:3px;touch-action:pan-x pan-y}.weekcard{flex:0 0 clamp(94px,calc((100% - 54px)/7),140px);min-width:0;scroll-snap-align:start}.weekcard.best:not(.sel){border-color:#75cbb0}.weekcard.sel{border:2px solid #91efca}.best-week{margin-top:9px}.timeline-legend{font-size:12px;color:var(--muted)}
 @media(max-width:700px){.weekgrid{gap:9px;scrollbar-width:none}.weekgrid::-webkit-scrollbar{display:none}.weekcard{flex:0 0 calc((100% - 23px)/3.55);min-height:102px;padding:10px 2px}.week-controls{margin:10px 0}.week-controls b{font-size:12px}}
