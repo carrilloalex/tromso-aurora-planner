@@ -404,8 +404,11 @@ const tr=(a,b)=>es()?b:a;
 let solar={mag:[],plasma:[],kp:[],updated:null,error:null},map=null,markers=[],mapPromise=null;
 const number=(v)=>{const n=Number(v);return v==null||v===''||!Number.isFinite(n)?null:n};
 const fmt=(n,d=0)=>n===null?'—':n.toFixed(d);
-function records(json){if(!Array.isArray(json)||!Array.isArray(json[0]))return [];let keys=json[0];return json.slice(1).map(r=>Object.fromEntries(keys.map((k,i)=>[k,r[i]])));}
-async function getJSON(url){const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),10000);try{const res=await fetch(url,{signal:ctrl.signal,cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);return await res.json()}finally{clearTimeout(timeout)}}
+function records(json){if(!Array.isArray(json))return [];if(!Array.isArray(json[0]))return json.filter(x=>x&&typeof x==='object');let keys=json[0];return json.slice(1).map(r=>Object.fromEntries(keys.map((k,i)=>[k,r[i]])));}
+function primary(rows){const active=rows.filter(x=>x.active===true||x.active==='true');return active.length?active:rows;}
+function validWind(x){return number(x.speed)!==null&&number(x.speed)>0&&number(x.speed)<2500&&number(x.density)!==null&&number(x.density)>=0&&number(x.density)<1000;}
+function validMag(x){return number(x.bz_gsm)!==null&&Math.abs(number(x.bz_gsm))<300&&number(x.bt)!==null&&number(x.bt)>=0&&number(x.bt)<300;}
+async function getJSON(url){const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),18000);try{const res=await fetch(url,{signal:ctrl.signal,cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);return await res.json()}finally{clearTimeout(timeout)}}
 function parseTime(value){
  if(!value)return NaN;
  const s=String(value).trim().replace(' ','T');
@@ -417,12 +420,14 @@ function solarButton(){return el('v13-solar-retry')}
 async function loadSolar(){
  const btn=solarButton();if(btn)btn.disabled=true;
  el('v13-solar-status').textContent=tr('Connecting to NOAA…','Conectando con NOAA…');
- const urls=['https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json','https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json','https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json'];
+ const urls=['https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json','https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json','https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json','https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json'];
  const result=await Promise.allSettled(urls.map(getJSON));
- solar.mag=result[0].status==='fulfilled'?records(result[0].value):[];
- solar.plasma=result[1].status==='fulfilled'?records(result[1].value):[];
- solar.kp=result[2].status==='fulfilled'?(Array.isArray(result[2].value?.[0])?records(result[2].value):Array.isArray(result[2].value)?result[2].value:[]):[];
- solar.error=result.map((r,i)=>r.status==='rejected'?['mag','plasma','kp'][i]:null).filter(Boolean);
+ solar.mag=result[0].status==='fulfilled'?primary(records(result[0].value)):[];
+ solar.plasma=result[1].status==='fulfilled'?primary(records(result[1].value)).map(x=>({...x,speed:x.proton_speed,density:x.proton_density})):[];
+ solar.kp=[...(result[2].status==='fulfilled'?records(result[2].value):[]),...(result[3].status==='fulfilled'?records(result[3].value):[])];
+ solar.error=result.map((r,i)=>r.status==='rejected'?['mag','plasma','kp forecast','kp observed'][i]:null).filter(Boolean);
+ if(solar.mag.length&&!solar.mag.some(validMag))solar.error.push('mag values');
+ if(solar.plasma.length&&!solar.plasma.some(validWind))solar.error.push('plasma values');
  solar.updated=Date.now();
  if(btn)btn.disabled=false;
  updateSolar();
@@ -431,9 +436,10 @@ function updateSolar(){
  const d=typeof selectedDate==='string'?selectedDate:null;
  const today=typeof osloToday==='function'?osloToday():null;
  const diff=d&&today?Math.round((Date.parse(d+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/86400000):null;
- const m=latestValid(solar.mag,['bz_gsm','bt']);const p=latestValid(solar.plasma,['speed','density']);
+ const m=latestValid(solar.mag.filter(validMag),['bz_gsm','bt']);const p=latestValid(solar.plasma.filter(validWind),['speed','density']);
  const ages=[m,p].filter(Boolean).map(x=>(Date.now()-parseTime(x.time_tag))/60000);
  const fresh=ages.length===2&&ages.every(x=>x>=-10&&x<=45);
+ const anyRecent=ages.some(x=>x>=-10&&x<=45);
  const status=el('v13-solar-status'); const metrics=el('v13-solar-metrics');if(metrics)metrics.hidden=!m&&!p;
  if(!m&&!p)status.textContent=tr('Solar readings unavailable — retry or check NOAA','Sin mediciones solares — reintenta o consulta NOAA');
  else if(!fresh)status.textContent=tr('Delayed or partial data','Datos retrasados o parciales');
@@ -442,17 +448,17 @@ function updateSolar(){
  el('v13-bt').textContent=fmt(m?number(m.bt):null,1);
  el('v13-speed').textContent=fmt(p?number(p.speed):null);
  el('v13-density').textContent=fmt(p?number(p.density):null,1);
- const samples=solar.mag.filter(x=>number(x.bz_gsm)!==null&&m&&parseTime(x.time_tag)>=parseTime(m.time_tag)-3600000&&parseTime(x.time_tag)<=parseTime(m.time_tag));
+ const samples=solar.mag.filter(x=>validMag(x)&&m&&parseTime(x.time_tag)>=parseTime(m.time_tag)-3600000&&parseTime(x.time_tag)<=parseTime(m.time_tag));
  const ratio=samples.length?samples.filter(x=>number(x.bz_gsm)<0).length/samples.length:0;
  const trend=samples.length>=6?(ratio>=.7?tr('Bz was southward for most of the last hour.','Bz se mantuvo hacia el sur durante gran parte de la última hora.'):ratio<=.3?tr('Bz was mostly northward over the last hour.','Bz fue mayormente positivo durante la última hora.'):tr('Bz direction varied over the last hour.','La orientación del Bz varió durante la última hora.')):tr('Not enough recent readings for a Bz trend.','No hay suficientes mediciones recientes para analizar Bz.');
  el('v13-solar-trend').textContent=m?tr('Last measurement: ','Última medición: ')+m.time_tag+' UTC · '+trend:tr('No magnetic-field readings received.','No se han recibido mediciones del campo magnético.');
  const kpRows=solar.kp.filter(x=>number(x.Kp)!==null&&Number.isFinite(parseTime(x.time_tag||x.time)));
  const forecast=kpRows.filter(x=>{const t=x.time_tag||x.time;return dateOf(t)===d});
- const kp=forecast.find(x=>String(x.observed||'').toLowerCase()==='predicted')||forecast[0]||null;
+ const kp=forecast.find(x=>String(x.observed||'').toLowerCase()==='predicted')||forecast.sort((a,b)=>parseTime(b.time_tag||b.time)-parseTime(a.time_tag||a.time))[0]||(diff===0?kpRows.sort((a,b)=>parseTime(b.time_tag||b.time)-parseTime(a.time_tag||a.time))[0]:null)||null;
  const kpText=el('v13-kp');
  if(diff!==null&&diff>=0&&diff<=3&&kp){
   const type=String(kp.observed||'').toLowerCase();
-  const typeText=type==='observed'?tr('observed','observado'):type==='estimated'?tr('estimated','estimado'):tr('forecast','previsión');
+  const typeText=type==='observed'||!type?tr('observed','observado'):type==='estimated'?tr('estimated','estimado'):tr('forecast','previsión');
   kpText.textContent=`Kp ${fmt(number(kp.Kp),1)} · ${typeText} · ${kp.time_tag||kp.time} UTC`;
  }else kpText.textContent=diff>3?tr('Kp forecast not available this far ahead.','No hay previsión Kp para una fecha tan lejana.'):tr('No Kp data available for the selected date.','No hay datos Kp para la fecha seleccionada.');
  let message;

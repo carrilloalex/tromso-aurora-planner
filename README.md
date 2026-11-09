@@ -67,3 +67,8 @@ Found a bug or have an idea? [Open a GitHub issue](https://github.com/carrilloal
 ---
 
 *Aurora Planner is an independent planning tool, not an aurora sighting guarantee or a substitute for local safety guidance.*
+
+
+### Solar data compatibility
+
+The live solar wind panel uses NOAA SWPC RTSW 1-minute JSON feeds (`/json/rtsw/rtsw_mag_1m.json` and `/json/rtsw/rtsw_wind_1m.json`). Measurements are observations, not forecasts for future nights. If NOAA is unavailable, the weather forecast remains usable.
