@@ -9,48 +9,67 @@ const number=(v)=>{const n=Number(v);return v==null||v===''||!Number.isFinite(n)
 const fmt=(n,d=0)=>n===null?'—':n.toFixed(d);
 function records(json){if(!Array.isArray(json)||!Array.isArray(json[0]))return [];let keys=json[0];return json.slice(1).map(r=>Object.fromEntries(keys.map((k,i)=>[k,r[i]])));}
 async function getJSON(url){const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),10000);try{const res=await fetch(url,{signal:ctrl.signal,cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);return await res.json()}finally{clearTimeout(timeout)}}
+function parseTime(value){
+ if(!value)return NaN;
+ const s=String(value).trim().replace(' ','T');
+ return Date.parse(/[zZ]$|[+-]\d\d:\d\d$/.test(s)?s:s+'Z');
+}
+function dateOf(value){const t=parseTime(value);return Number.isFinite(t)?new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t)):null}
+function latestValid(rows,fields){return rows.filter(x=>fields.every(k=>number(x[k])!==null)&&Number.isFinite(parseTime(x.time_tag||x.time))).sort((a,b)=>parseTime(b.time_tag||b.time)-parseTime(a.time_tag||a.time))[0]||null}
+function solarButton(){return el('v13-solar-retry')}
 async function loadSolar(){
- el('v13-solar-status').textContent=tr('Loading NOAA…','Cargando NOAA…');
+ const btn=solarButton();if(btn)btn.disabled=true;
+ el('v13-solar-status').textContent=tr('Connecting to NOAA…','Conectando con NOAA…');
  const urls=['https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json','https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json','https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json'];
  const result=await Promise.allSettled(urls.map(getJSON));
  solar.mag=result[0].status==='fulfilled'?records(result[0].value):[];
  solar.plasma=result[1].status==='fulfilled'?records(result[1].value):[];
  solar.kp=result[2].status==='fulfilled'?records(result[2].value):[];
- solar.error=result.every(r=>r.status==='rejected')?'NOAA unavailable':null;
+ solar.error=result.map((r,i)=>r.status==='rejected'?['mag','plasma','kp'][i]:null).filter(Boolean);
+ solar.updated=Date.now();
+ if(btn)btn.disabled=false;
  updateSolar();
 }
-function latestValid(rows,fields){return [...rows].reverse().find(x=>fields.every(k=>number(x[k])!==null))||null}
 function updateSolar(){
  const d=typeof selectedDate==='string'?selectedDate:null;
  const today=typeof osloToday==='function'?osloToday():null;
  const diff=d&&today?Math.round((Date.parse(d+'T12:00:00Z')-Date.parse(today+'T12:00:00Z'))/86400000):null;
  const m=latestValid(solar.mag,['bz_gsm','bt']);const p=latestValid(solar.plasma,['speed','density']);
- const times=[m?.time_tag,p?.time_tag].filter(Boolean).map(x=>Date.parse(x+'Z'.replace('ZZ','Z'))).filter(Number.isFinite);
- const age=times.length?(Date.now()-Math.min(...times))/60000:Infinity;
- const fresh=age>=-10&&age<=45;
- const near=diff===0;
+ const ages=[m,p].filter(Boolean).map(x=>(Date.now()-parseTime(x.time_tag))/60000);
+ const fresh=ages.length===2&&ages.every(x=>x>=-10&&x<=45);
  const status=el('v13-solar-status');
- status.textContent=near?(fresh?tr('Recent NOAA data','Datos NOAA recientes'):tr('Delayed / unavailable','Retrasados / no disponibles')):tr('Live context only','Solo contexto actual');
+ if(!m&&!p)status.textContent=tr('NOAA data unavailable','Sin datos de NOAA');
+ else if(!fresh)status.textContent=tr('Delayed or partial data','Datos retrasados o parciales');
+ else status.textContent=tr('Live readings · now','Mediciones en directo · ahora');
  el('v13-bz').textContent=fmt(m?number(m.bz_gsm):null,1);
  el('v13-bt').textContent=fmt(m?number(m.bt):null,1);
  el('v13-speed').textContent=fmt(p?number(p.speed):null);
  el('v13-density').textContent=fmt(p?number(p.density):null,1);
- const samples=solar.mag.filter(x=>number(x.bz_gsm)!==null&&m&&Date.parse(x.time_tag+'Z')>=Date.parse(m.time_tag+'Z')-60*60000);
- const south=samples.filter(x=>number(x.bz_gsm)<0).length;
- const ratio=samples.length?south/samples.length:0;
- const trend= samples.length>=6?(ratio>=.7?tr('Bz was southward for most of the last hour.','Bz se mantuvo hacia el sur durante gran parte de la última hora.'):ratio<=.3?tr('Bz was mostly northward over the last hour.','Bz fue mayormente positivo durante la última hora.'):tr('Bz direction varied over the last hour.','La orientación del Bz varió durante la última hora.')):tr('Not enough recent readings for a Bz trend.','No hay suficientes mediciones recientes para analizar Bz.');
- el('v13-solar-trend').textContent=(m?.time_tag?tr('Latest magnetic reading: ','Última medición magnética: ')+m.time_tag+' UTC · ':'')+trend;
- const kp=latestValid(solar.kp,['Kp']);
- el('v13-kp').textContent=kp?`Kp ${fmt(number(kp.Kp),1)} · ${kp.time_tag||kp.time||''} · ${kp.observed||kp.noaa_scale||tr('forecast/observation','previsión/observación')}`:tr('Kp forecast not available.','Previsión Kp no disponible.');
+ const samples=solar.mag.filter(x=>number(x.bz_gsm)!==null&&m&&parseTime(x.time_tag)>=parseTime(m.time_tag)-3600000&&parseTime(x.time_tag)<=parseTime(m.time_tag));
+ const ratio=samples.length?samples.filter(x=>number(x.bz_gsm)<0).length/samples.length:0;
+ const trend=samples.length>=6?(ratio>=.7?tr('Bz was southward for most of the last hour.','Bz se mantuvo hacia el sur durante gran parte de la última hora.'):ratio<=.3?tr('Bz was mostly northward over the last hour.','Bz fue mayormente positivo durante la última hora.'):tr('Bz direction varied over the last hour.','La orientación del Bz varió durante la última hora.')):tr('Not enough recent readings for a Bz trend.','No hay suficientes mediciones recientes para analizar Bz.');
+ el('v13-solar-trend').textContent=m?tr('Last measurement: ','Última medición: ')+m.time_tag+' UTC · '+trend:tr('No magnetic-field readings received.','No se han recibido mediciones del campo magnético.');
+ const kpRows=solar.kp.filter(x=>number(x.Kp)!==null&&Number.isFinite(parseTime(x.time_tag||x.time)));
+ const forecast=kpRows.filter(x=>{const t=x.time_tag||x.time;return dateOf(t)===d});
+ const kp=forecast.find(x=>String(x.observed||'').toLowerCase()==='predicted')||forecast[0]||null;
+ const kpText=el('v13-kp');
+ if(diff!==null&&diff>=0&&diff<=3&&kp){
+  const type=String(kp.observed||'').toLowerCase();
+  const typeText=type==='observed'?tr('observed','observado'):type==='estimated'?tr('estimated','estimado'):tr('forecast','previsión');
+  kpText.textContent=`Kp ${fmt(number(kp.Kp),1)} · ${typeText} · ${kp.time_tag||kp.time} UTC`;
+ }else kpText.textContent=diff>3?tr('Kp forecast not available this far ahead.','No hay previsión Kp para una fecha tan lejana.'):tr('No Kp data available for the selected date.','No hay datos Kp para la fecha seleccionada.');
  let message;
- if(diff===null)message=tr('Select a night to compare forecast and solar activity.','Selecciona una noche para comparar meteorología y actividad solar.');
- else if(diff>3)message=tr('This date is beyond the reliable short-term solar forecast. The live values below describe NOW, not the selected night.','Esta fecha queda fuera de la previsión solar a corto plazo. Los valores de abajo describen AHORA, no la noche seleccionada.');
- else if(diff>0)message=tr('Solar-wind values below are live observations, not predictions for this future night. Check NOAA Kp forecasts closer to departure.','Los valores de viento solar son observaciones actuales, no predicciones para esta noche futura. Consulta Kp cuando se acerque.');
- else if(diff<0)message=tr('This night is in the past. The readings below are current, not historical values for that date.','Esta noche ya pasó. Las mediciones siguientes son actuales, no históricas de esa fecha.');
- else if(!fresh)message=tr('Current solar readings are delayed or unavailable. Do not infer low activity from missing data.','Las mediciones solares están retrasadas o no disponibles. La ausencia de datos no significa actividad baja.');
- else if(m&&number(m.bz_gsm)<-5&&ratio>=.7)message=tr('Sustained southward Bz is favorable for geomagnetic coupling, but aurora visibility is not guaranteed.','El Bz negativo sostenido favorece el acoplamiento geomagnético, pero no garantiza auroras visibles.');
- else message=tr('Live solar conditions can change quickly. In Tromsø, aurora can be visible even with modest Kp.','Las condiciones solares pueden cambiar rápidamente. En Tromsø puede haber auroras incluso con Kp moderado.');
+ if(!m&&!p&&solar.updated)message=tr('NOAA did not return solar-wind readings. Check your connection or try again. This does not mean solar activity is low.','NOAA no ha devuelto mediciones del viento solar. Comprueba la conexión o vuelve a intentarlo. Esto no significa que la actividad solar sea baja.');
+ else if(diff===null)message=tr('Select a night to compare forecast and solar activity.','Selecciona una noche para comparar meteorología y actividad solar.');
+ else if(diff>3)message=tr('No reliable Bz or solar-wind forecast exists for this date. The values shown below describe NOW, not the selected night.','No existe una previsión fiable de Bz o viento solar para esta fecha. Los valores siguientes describen AHORA, no la noche seleccionada.');
+ else if(diff>0)message=tr('The readings below are current observations, NOT a prediction for this future night. Kp forecasts, when available, are shown separately.','Las mediciones siguientes son observaciones actuales, NO una predicción para esta noche futura. La previsión Kp se muestra por separado cuando está disponible.');
+ else if(diff<0)message=tr('The readings below are current, not historical values for that date.','Las mediciones siguientes son actuales, no históricas de esa fecha.');
+ else if(!fresh)message=tr('Solar readings are delayed or incomplete. Missing data must not be interpreted as low activity.','Las mediciones solares están retrasadas o incompletas. La ausencia de datos no significa actividad baja.');
+ else if(m&&number(m.bz_gsm)<-5&&ratio>=.7)message=tr('Sustained southward Bz favors geomagnetic coupling, but aurora visibility is not guaranteed.','El Bz negativo sostenido favorece el acoplamiento geomagnético, pero no garantiza auroras visibles.');
+ else message=tr('These are live solar conditions. Aurora can be visible in Tromsø even with modest Kp.','Estas son las condiciones solares actuales. En Tromsø puede haber auroras incluso con Kp moderado.');
  el('v13-solar-explain').textContent=message;
+ const error=el('v13-solar-error');
+ if(error){error.hidden=!(solar.error&&solar.error.length);error.textContent=solar.error&&solar.error.length?tr('NOAA connection failed for: ','Falló la conexión con NOAA para: ')+solar.error.join(', ')+'. '+tr('Other forecasts remain available.','El resto de previsiones sigue disponible.'):'';}
 }
 function cloudData(){if(typeof selectedDate!=='string'||typeof rank!=='function')return null;const best=rank(selectedDate,+state.drive);if(!best)return null;const hs=hours(selectedDate);return {best,hs,values:hs.map(h=>pointValue(best.index,h.key,'cloud_cover'))};}
 function renderCloud(){const data=cloudData();const chart=el('v13-cloud-chart');if(!data){chart.innerHTML='';el('v13-cloud-window').textContent=tr('No hourly weather data for this date.','No hay previsión horaria para esta fecha.');return}
@@ -68,6 +87,7 @@ let busy=false;async function update(){if(busy)return;busy=true;try{updateSolar(
 const oldRenderExplore=window.renderExplore;
 if(typeof oldRenderExplore==='function'){window.renderExplore=function(...args){const r=oldRenderExplore.apply(this,args);update();return r}}
 el('v13-hour').addEventListener('input',()=>{renderMapPoints()});
+const retry=solarButton();if(retry)retry.addEventListener('click',loadSolar);
 const refresh=el('refresh');if(refresh)refresh.addEventListener('click',()=>loadSolar());
 loadSolar();update();
 })();
