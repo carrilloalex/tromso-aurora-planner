@@ -1,14 +1,18 @@
-# Aurora Planner v17.1
+# Aurora Planner v18 — decision-first UX
 
-Static bilingual Tromsø aurora planner for GitHub Pages. Upload all seven files preserving folders.
+Static EN/ES GitHub Pages deployment. Upload all seven files preserving directories.
 
-## Changes
-- Observation mode: Tour (default), Car, No car. Tour search and optional locally stored tour date/time.
-- Single compact nightly labels: Excellent, Favorable, Potential, Unfavorable, Uncertain.
-- Labels use hourly clouds at reachable forecast points and NOAA predicted Kp when available. Elevated means Kp >= 5 (NOAA G1 threshold), not guaranteed aurora.
-- Short clear breaks are considered. Horizon >3 days avoids claims of elevated solar activity.
-- Main recommendation combines sky, aurora signal, forecast window, and selected mode.
-- Tour operator routes cannot be predicted. No-car mode conservatively uses Tromsø only.
+Changes: calendar before configuration; one compact recommendation with observation-mode selector; tour booking collapsed; car-area choice shown only to drivers; map with three initial locations and expandable alternatives; technical details below. Regional nightly labels are consistent across modes. Personal advice changes based on the chosen mode.
 
-## Limitations
-Moon position and local light pollution are NOT yet modeled; no live transit, road safety, route or tour availability data. NOAA forecasts are not sighting probabilities. The single-label rules are heuristic, not scientifically calibrated.
+**Important:** the 30/60/90-minute driving concept is intentionally NOT displayed as verified minutes because the application has no road routing service. Instead the selector uses rough area bands. These do not establish driving time, safe access, or tour itinerary. Tour reach is conservatively limited to existing level 2 areas; the operator decides the actual route. Walking mode uses Tromsø only, without promising transit or viewpoint accessibility.
+
+Cloud forecasts: Open-Meteo. Solar data: NOAA. Forecasts are not sighting probabilities. No moonlight or site-specific light pollution model.
+
+
+## v19
+- NOAA Kp matched to actual clear-sky hours during the overnight period, including Norwegian daylight-saving offsets.
+- Nearby usable locations preferred; longer trips require substantially better clear windows. Tour reach limited to existing level-2 weather locations.
+- Collapsible map and hidden empty forecast sections; retry for missing weather.
+- Drive settings are approximate geographic coverage, never road travel minutes.
+- EN/ES text and accessibility improvements.
+- No verified route times, real tour itineraries, moon/light pollution, or guarantee of seeing aurora.
