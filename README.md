@@ -1,18 +1,20 @@
-# Aurora Planner v18 — decision-first UX
+# Aurora Planner v21 — JTBD fixes
 
-Static EN/ES GitHub Pages deployment. Upload all seven files preserving directories.
+A bilingual, mobile-first, static aurora planning site for Tromsø. Deploy the seven files to GitHub Pages, preserving the `en/` and `es/` folders.
 
-Changes: calendar before configuration; one compact recommendation with observation-mode selector; tour booking collapsed; car-area choice shown only to drivers; map with three initial locations and expandable alternatives; technical details below. Regional nightly labels are consistent across modes. Personal advice changes based on the chosen mode.
+## Changes since v20
+- The calendar keeps its **regional** outlook; the main recommendation, cloud-hour strip, location and map all use the **same mode-specific** weather-point selection.
+- Clear distinction between regional potential and what is accessible within the chosen search zone; never presents a distant regional point as the user's local recommendation.
+- Conservative nearby-first site selection: a viable nearer forecast point beats a farther one; no destination is recommended if none has useful clear periods.
+- Map ranking begins with the selected recommended point, and the map only shows forecast points within the selected zone.
+- The main card gives practical next steps for guided tours, driving and staying in Tromsø. Guidance does not claim verified access.
+- A discreet 'best forecast night' marker highlights the strongest near-term night when enough information exists; not a guarantee of aurora sightings.
+- Travel-date selector rejects past dates, dates outside the 16-day forecast, reversed ranges and ranges longer than 16 nights.
+- Missing-data states never imply that skies will be cloudy; copy reviewed in English and Spanish.
 
-**Important:** the 30/60/90-minute driving concept is intentionally NOT displayed as verified minutes because the application has no road routing service. Instead the selector uses rough area bands. These do not establish driving time, safe access, or tour itinerary. Tour reach is conservatively limited to existing level 2 areas; the operator decides the actual route. Walking mode uses Tromsø only, without promising transit or viewpoint accessibility.
-
-Cloud forecasts: Open-Meteo. Solar data: NOAA. Forecasts are not sighting probabilities. No moonlight or site-specific light pollution model.
-
-
-## v19
-- NOAA Kp matched to actual clear-sky hours during the overnight period, including Norwegian daylight-saving offsets.
-- Nearby usable locations preferred; longer trips require substantially better clear windows. Tour reach limited to existing level-2 weather locations.
-- Collapsible map and hidden empty forecast sections; retry for missing weather.
-- Drive settings are approximate geographic coverage, never road travel minutes.
-- EN/ES text and accessibility improvements.
-- No verified route times, real tour itineraries, moon/light pollution, or guarantee of seeing aurora.
+## Forecasts and limitations
+- Open-Meteo hourly cloud cover for 12 regional weather points; NOAA SWPC 3-hour Kp forecast matched to local night hours when available.
+- 8+ day forecasts are uncertain; Kp is not a probability of seeing auroras.
+- Search zones are rough geographic groupings, **not** verified drive times, routes, safety assessments, accessible walking locations, or operator itineraries. Verify all travel independently.
+- A weather point is not an approved or safe viewing destination.
+- Network APIs, map tiles and actual Safari rendering require live deployment QA. Automated tests used mocked weather/Kp and controlled network failures.
