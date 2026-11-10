@@ -72,3 +72,7 @@ Found a bug or have an idea? [Open a GitHub issue](https://github.com/carrilloal
 ### Solar data compatibility
 
 The live solar wind panel uses NOAA SWPC RTSW 1-minute JSON feeds (`/json/rtsw/rtsw_mag_1m.json` and `/json/rtsw/rtsw_wind_1m.json`). Measurements are observations, not forecasts for future nights. If NOAA is unavailable, the weather forecast remains usable.
+
+
+## v16
+Single-page Explore experience. Optional date filtering; legacy trip data remains in browser storage but is no longer shown. Recommendations distinguish clear-sky forecasts from solar activity. Solar wind observations are relevant only for immediate conditions; NOAA Kp forecasts are used for near-term nights when available. No aurora probability is inferred from cloud percentages.
